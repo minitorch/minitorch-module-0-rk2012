@@ -22,7 +22,7 @@ class Module:
     def __init__(self) -> None:
         self._modules = {}
         self._parameters = {}
-        self.training = True
+        
 
     def modules(self) -> Sequence[Module]:
         """Return the direct child modules of this module."""
@@ -32,12 +32,33 @@ class Module:
     def train(self) -> None:
         """Set the mode of this module and all descendent modules to `train`."""
         # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        self.training = True
+        for module in self.modules():
+            module.train()
 
     def eval(self) -> None:
         """Set the mode of this module and all descendent modules to `eval`."""
         # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        self.mode = "eval"
+        for module in self.modules():
+            module.eval()
+
+    def named_parameters_with_ancestor_chain(self, ancestor_chain: str) -> Sequence[Tuple[str, Parameter]]:
+        #append ancestor_chain only if the str is not empty
+       
+        thisModuleParams = [(ancestor_chain + "." + name, param) if ancestor_chain != "" else (name, param) for name, param in self._parameters.items()]
+        # If there are no child modules return thisModuleParams
+
+        if not self._modules:
+            return thisModuleParams
+
+        # Otherwise, collect parameters from child modules
+        ancestor_chain = ancestor_chain + "." if ancestor_chain != "" else ""
+        for kvp in self._modules.items():
+            childParams = kvp[1].named_parameters_with_ancestor_chain(ancestor_chain + kvp[0])
+            thisModuleParams.extend(childParams)
+
+        return thisModuleParams
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """Collect all the parameters of this module and its descendents.
@@ -47,13 +68,18 @@ class Module:
             The name and `Parameter` of each ancestor parameter.
 
         """
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        return self.named_parameters_with_ancestor_chain("")
 
     def parameters(self) -> Sequence[Parameter]:
         """Enumerate over all the parameters of this module and its descendents."""
         # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        thisParameters = list(self._parameters.values())
+        if not self._modules:
+            return thisParameters
+        for module in self._modules.values():
+            childParams = module.parameters()
+            thisParameters.extend(childParams)
+        return thisParameters
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """Manually add a parameter. Useful helper for scalar parameters.
